@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Crust Mining Detection System</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #1a1a2e;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid #2d2d44;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+            background: #16213e;
+        }
+
+        .panel {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #2d2d44;
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-section {
+            grid-column: 1 / -1;
+        }
+
+        .file-upload {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #0f3460;
+        }
+
+        .file-upload:hover {
+            border-color: #764ba2;
+            background: #16213e;
+        }
+
+        .file-upload.dragover {
+            background: #1a2a4a;
+            border-color: #667eea;
+        }
+
+        .file-upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: block;
+            cursor: pointer;
+            color: #e4e4e4;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        #map {
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .boundary-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid #2d2d44;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-card .label {
+            color: #b0b0b0;
+            font-size: 0.9em;
+        }
+
+        .stat-card.warning .value {
+            color: #ff6b6b;
+        }
+
+        .results-section {
+            grid-column: 1 / -1;
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .visualization {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 5px solid #2d2d44;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #1a4d2e;
+            color: #7bed9f;
+            border: 1px solid #2ecc71;
+        }
+
+        .alert-danger {
+            background: #4d1a1a;
+            color: #ff6b6b;
+            border: 1px solid #e74c3c;
+        }
+
+        .alert-warning {
+            background: #4d3a1a;
+            color: #ffa502;
+            border: 1px solid #f39c12;
+        }
+
+        .report-section {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #e4e4e4;
+            border: 1px solid #2d2d44;
+        }
+
+        .instructions {
+            background: #1a2a4a;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+            color: #c4c4c4;
+        }
+
+        .preset-location:hover {
+            background: #667eea !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Leaflet layer control styling */
+        .leaflet-control-layers {
+            border-radius: 8px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+        }
+
+        .leaflet-control-layers-expanded {
+            padding: 10px !important;
+            background: white !important;
+        }
+
+        .leaflet-control-layers-toggle {
+            background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiI+PHBhdGggZD0iTTEgNmgxNk0xIDEyaDE2TTEgMThoMTYiLz48L3N2Zz4=) !important;
+            width: 36px !important;
+            height: 36px !important;
+            background-size: 20px !important;
+        }
+
+        /* Input focus states */
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #16213e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛰️ Open Crust Mining Detection System</h1>
+            <p>AI-Powered Satellite Image Analysis for Mining Activity Detection & Boundary Compliance</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="panel upload-section">
+                <h2>📤 Upload Satellite Image</h2>
+                
+                <div class="instructions">
+                    <h3>How to Use:</h3>
+                    <ol>
+                        <li>Upload a satellite image (EO/SAR) of the mining area</li>
+                        <li>Optionally draw a boundary polygon on the map for authorized mining area</li>
+                        <li>Click "Analyze Mining Activity" to detect mining areas</li>
+                        <li>Review the results and generate a compliance report</li>
+                    </ol>
+                </div>
+
+                <div class="file-upload" id="fileUpload">
+                    <div class="file-upload-icon">📁</div>
+                    <label for="imageInput" class="file-upload-label">
+                        <strong>Click to upload</strong> or drag and drop<br>
+                        Satellite imagery (PNG, JPG, JPEG) - Max 50MB
+                    </label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                
+                <div id="fileInfo" style="margin-top: 15px; text-align: center; color: #b0b0b0;"></div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn" id="analyzeBtn" disabled>🔍 Analyze Mining Activity</button>
+                    <button class="btn btn-secondary" id="resetBtn">🔄 Reset</button>
+                </div>
+
+                <div id="alertBox" class="alert"></div>
+            </div>
+
+            <!-- Boundary Definition -->
+            <div class="panel">
+                <h2>🗺️ Define Mining Boundary (Optional)</h2>
+                <p style="margin-bottom: 15px; color: #b0b0b0;">
+                    Click on the map to define the authorized mining boundary. This will be used to detect illegal mining outside the permitted area.
+                </p>
+                
+                <div style="background: #1a2a4a; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                    <small style="color: #b0b0b0;">
+                        <strong>💡 Tip:</strong> Use the layer control (top-right of map) to switch between Satellite 🛰️, Street Map 🗺️, and Topographic ⛰️ views. Satellite view is recommended for mining detection.
+                    </small>
+                </div>
+                
+                <!-- Location Input -->
+                <div style="background: #0f3460; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #2d2d44;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;">
+                        <div>
+                            <label style="display: block; font-size: 0.85em; color: #b0b0b0; margin-bottom: 5px;">Latitude</label>
+                            <input type="number" id="latInput" placeholder="e.g., 20.5937" step="any" 
+                                   style="width: 100%; padding: 10px; border: 2px solid #2d2d44; background: #16213e; color: #e4e4e4; border-radius: 8px; font-size: 0.95em;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85em; color: #b0b0b0; margin-bottom: 5px;">Longitude</label>
+                            <input type="number" id="lonInput" placeholder="e.g., 78.9629" step="any" 
+                                   style="width: 100%; padding: 10px; border: 2px solid #2d2d44; background: #16213e; color: #e4e4e4; border-radius: 8px; font-size: 0.95em;">
+                        </div>
+                        <button class="btn" id="goToLocationBtn" style="font-size: 0.9em; padding: 10px 20px; white-space: nowrap;">
+                            📍 Go to Location
+                        </button>
+                    </div>
+                    
+                    <!-- Quick Location Presets -->
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #2d2d44;">
+                        <label style="display: block; font-size: 0.85em; color: #b0b0b0; margin-bottom: 5px;">Quick Jump to Mining Regions:</label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="preset-location" data-lat="23.8103" data-lon="86.4130" style="background: #16213e; border: 1px solid #2d2d44; color: #e4e4e4; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;">
+                                ⛏️ Jharkhand
+                            </button>
+                            <button class="preset-location" data-lat="23.4559" data-lon="85.2989" style="background: #16213e; border: 1px solid #2d2d44; color: #e4e4e4; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;">
+                                🪨 Ranchi
+                            </button>
+                            <button class="preset-location" data-lat="22.5726" data-lon="88.3639" style="background: #16213e; border: 1px solid #2d2d44; color: #e4e4e4; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;">
+                                🏭 Kolkata
+                            </button>
+                            <button class="preset-location" data-lat="15.3173" data-lon="75.7139" style="background: #16213e; border: 1px solid #2d2d44; color: #e4e4e4; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;">
+                                💎 Karnataka
+                            </button>
+                            <button class="preset-location" data-lat="21.1458" data-lon="79.0882" style="background: #16213e; border: 1px solid #2d2d44; color: #e4e4e4; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;">
+                                🔶 Nagpur
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="map"></div>
+                <div class="boundary-controls">
+                    <button class="btn" id="drawBoundaryBtn" style="font-size: 0.9em; padding: 10px 20px;">✏️ Draw Boundary</button>
+                    <button class="btn btn-secondary" id="clearBoundaryBtn" style="font-size: 0.9em; padding: 10px 20px;">🗑️ Clear Boundary</button>
+                </div>
+                <div id="boundaryInfo" style="margin-top: 15px; color: #b0b0b0;"></div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="panel loading" id="loadingPanel">
+                <div class="spinner"></div>
+                <h3 style="color: #667eea;">Analyzing satellite imagery...</h3>
+                <p style="color: #b0b0b0;">This may take a few moments. Please wait.</p>
+            </div>
+
+            <!-- Results Section -->
+            <div class="panel results-section" id="resultsSection">
+                <h2>📊 Analysis Results</h2>
+                
+                <div class="stats-grid" id="statsGrid"></div>
+                
+                <img id="visualization" class="visualization" alt="Analysis Visualization">
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn" id="generateReportBtn">📄 Generate Compliance Report</button>
+                </div>
+
+                <div id="reportSection" class="report-section" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // State management
+        let uploadedFile = null;
+        let boundaryPoints = [];
+        let analysisResults = null;
+        let map = null;
+        let drawnItems = null;
+        let currentPolygon = null;
+        let isDrawing = false;
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([20.5937, 78.9629], 5); // Center on India
+            
+            // Define different map layers
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                maxZoom: 19
+            });
+
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            });
+
+            const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap',
+                maxZoom: 17
+            });
+
+            // Add satellite layer by default
+            satelliteLayer.addTo(map);
+
+            // Add layer control
+            const baseLayers = {
+                "🛰️ Satellite": satelliteLayer,
+                "🗺️ Street Map": streetLayer,
+                "⛰️ Topographic": topoLayer
+            };
+            
+            L.control.layers(baseLayers).addTo(map);
+
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            map.on('click', function(e) {
+                if (isDrawing) {
+                    addBoundaryPoint(e.latlng);
+                } else {
+                    // Show coordinates on click
+                    const lat = e.latlng.lat.toFixed(6);
+                    const lon = e.latlng.lng.toFixed(6);
+                    
+                    // Update input fields
+                    document.getElementById('latInput').value = lat;
+                    document.getElementById('lonInput').value = lon;
+                    
+                    // Show temporary popup
+                    L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent(`📍 Coordinates: ${lat}, ${lon}<br><small>Click "Go to Location" to zoom here</small>`)
+                        .openOn(map);
+                }
+            });
+        }
+
+        // File upload handling
+        const fileUpload = document.getElementById('fileUpload');
+        const imageInput = document.getElementById('imageInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        fileUpload.addEventListener('click', () => imageInput.click());
+
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                imageInput.files = e.dataTransfer.files;
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                showAlert('Please select a valid image file', 'danger');
+                return;
+            }
+
+            uploadedFile = file;
+            fileInfo.innerHTML = `✅ Selected: <strong>${file.name}</strong> (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            analyzeBtn.disabled = false;
+            showAlert('Image uploaded successfully! Click "Analyze" to process.', 'success');
+        }
+
+        // Boundary drawing
+        document.getElementById('drawBoundaryBtn').addEventListener('click', () => {
+            isDrawing = !isDrawing;
+            document.getElementById('drawBoundaryBtn').textContent = isDrawing ? '⏸️ Stop Drawing' : '✏️ Draw Boundary';
+            
+            if (isDrawing) {
+                showAlert('Click on the map to add boundary points', 'success');
+            }
+        });
+
+        document.getElementById('clearBoundaryBtn').addEventListener('click', () => {
+            clearBoundary();
+        });
+
+        // Go to location functionality
+        document.getElementById('goToLocationBtn').addEventListener('click', () => {
+            const lat = parseFloat(document.getElementById('latInput').value);
+            const lon = parseFloat(document.getElementById('lonInput').value);
+            
+            if (isNaN(lat) || isNaN(lon)) {
+                showAlert('Please enter valid latitude and longitude values', 'danger');
+                return;
+            }
+            
+            if (lat < -90 || lat > 90) {
+                showAlert('Latitude must be between -90 and 90', 'danger');
+                return;
+            }
+            
+            if (lon < -180 || lon > 180) {
+                showAlert('Longitude must be between -180 and 180', 'danger');
+                return;
+            }
+            
+            // Move map to the specified location
+            map.setView([lat, lon], 15);
+            
+            // Add a temporary marker at the location
+            const marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'location-marker',
+                    html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                    iconSize: [20, 20]
+                })
+            }).addTo(map);
+            
+            // Remove marker after 3 seconds
+            setTimeout(() => {
+                map.removeLayer(marker);
+            }, 3000);
+            
+            showAlert(`Navigated to ${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'success');
+        });
+
+        // Allow Enter key to submit location
+        document.getElementById('latInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('goToLocationBtn').click();
+            }
+        });
+
+        document.getElementById('lonInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('goToLocationBtn').click();
+            }
+        });
+
+        // Preset location buttons
+        document.querySelectorAll('.preset-location').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const lat = e.target.dataset.lat;
+                const lon = e.target.dataset.lon;
+                
+                document.getElementById('latInput').value = lat;
+                document.getElementById('lonInput').value = lon;
+                
+                // Trigger navigation
+                document.getElementById('goToLocationBtn').click();
+            });
+        });
+
+        function addBoundaryPoint(latlng) {
+            boundaryPoints.push(latlng);
+            updateBoundaryDisplay();
+            
+            if (boundaryPoints.length >= 3) {
+                drawPolygon();
+            }
+        }
+
+        function drawPolygon() {
+            if (currentPolygon) {
+                drawnItems.removeLayer(currentPolygon);
+            }
+            
+            currentPolygon = L.polygon(boundaryPoints, {
+                color: '#00ff00',
+                fillColor: '#00ff00',
+                fillOpacity: 0.3
+            }).addTo(drawnItems);
+        }
+
+        function clearBoundary() {
+            boundaryPoints = [];
+            if (currentPolygon) {
+                drawnItems.removeLayer(currentPolygon);
+                currentPolygon = null;
+            }
+            isDrawing = false;
+            document.getElementById('drawBoundaryBtn').textContent = '✏️ Draw Boundary';
+            document.getElementById('boundaryInfo').textContent = '';
+        }
+
+        function updateBoundaryDisplay() {
+            const info = document.getElementById('boundaryInfo');
+            info.textContent = `${boundaryPoints.length} point${boundaryPoints.length !== 1 ? 's' : ''} defined`;
+        }
+
+        // Analyze button
+        analyzeBtn.addEventListener('click', async () => {
+            if (!uploadedFile) {
+                showAlert('Please upload an image first', 'danger');
+                return;
+            }
+
+            await analyzeImage();
+        });
+
+        async function analyzeImage() {
+            const formData = new FormData();
+            formData.append('image', uploadedFile);
+
+            // Convert boundary points to normalized coordinates
+            if (boundaryPoints.length >= 3) {
+                const bounds = map.getBounds();
+                const normalizedPoints = boundaryPoints.map(point => ({
+                    x: (point.lng - bounds.getWest()) / (bounds.getEast() - bounds.getWest()),
+                    y: (point.lat - bounds.getSouth()) / (bounds.getNorth() - bounds.getSouth())
+                }));
+                formData.append('boundary', JSON.stringify(normalizedPoints));
+            }
+
+            document.getElementById('loadingPanel').classList.add('active');
+            document.getElementById('resultsSection').classList.remove('active');
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    analysisResults = result;
+                    displayResults(result);
+                    showAlert('Analysis completed successfully!', 'success');
+                } else {
+                    showAlert('Analysis failed: ' + (result.error || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+            } finally {
+                document.getElementById('loadingPanel').classList.remove('active');
+            }
+        }
+
+        function displayResults(result) {
+            const stats = result.statistics;
+            const statsGrid = document.getElementById('statsGrid');
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="label">Total Mining Area</div>
+                    <div class="value">${stats.total_mining_area.toLocaleString()}</div>
+                    <div class="label">${stats.unit}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Authorized Area</div>
+                    <div class="value">${stats.authorized_mining_area.toLocaleString()}</div>
+                    <div class="label">${stats.unit}</div>
+                </div>
+                <div class="stat-card ${stats.violation_detected ? 'warning' : ''}">
+                    <div class="label">Illegal Mining</div>
+                    <div class="value">${stats.illegal_mining_area.toLocaleString()}</div>
+                    <div class="label">${stats.unit}</div>
+                </div>
+                <div class="stat-card ${stats.violation_detected ? 'warning' : ''}">
+                    <div class="label">Compliance Status</div>
+                    <div class="value">${stats.violation_detected ? '⚠️' : '✅'}</div>
+                    <div class="label">${stats.violation_detected ? 'VIOLATION' : 'COMPLIANT'}</div>
+                </div>
+            `;
+
+            document.getElementById('visualization').src = 'data:image/png;base64,' + result.visualization;
+            document.getElementById('resultsSection').classList.add('active');
+
+            if (stats.violation_detected) {
+                showAlert('⚠️ Warning: Illegal mining activity detected outside authorized boundary!', 'warning');
+            }
+        }
+
+        // Generate report
+        document.getElementById('generateReportBtn').addEventListener('click', async () => {
+            if (!analysisResults) return;
+
+            try {
+                const response = await fetch('/api/generate-report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(analysisResults)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('reportSection').textContent = result.report;
+                    document.getElementById('reportSection').style.display = 'block';
+                    showAlert('Report generated successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error generating report: ' + error.message, 'danger');
+            }
+        });
+
+        // Reset
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            uploadedFile = null;
+            analysisResults = null;
+            fileInfo.innerHTML = '';
+            analyzeBtn.disabled = true;
+            document.getElementById('resultsSection').classList.remove('active');
+            document.getElementById('reportSection').style.display = 'none';
+            clearBoundary();
+            showAlert('', '');
+        });
+
+        // Alert helper
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = 'alert';
+            
+            if (message) {
+                alertBox.classList.add('active', 'alert-' + type);
+                alertBox.textContent = message;
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initMap();
+        });
+    </script>
+</body>
+</html>
