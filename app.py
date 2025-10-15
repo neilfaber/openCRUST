@@ -1,4 +1,4 @@
-"""
+ comi"""
 Open Crust Mining Detection System - Flask Backend
 Detects mining areas from satellite imagery and identifies illegal mining outside boundaries
 """

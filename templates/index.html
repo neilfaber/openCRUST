@@ -322,6 +322,18 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
 
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        select option {
+            background: #16213e;
+            color: #e4e4e4;
+        }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 10px;
@@ -460,11 +472,75 @@
                 
                 <img id="visualization" class="visualization" alt="Analysis Visualization">
                 
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn" id="generateReportBtn">📄 Generate Compliance Report</button>
+                <!-- Report Generation Form -->
+                <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #2d2d44;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📝 Generate Official Report</h3>
+                    <p style="color: #b0b0b0; font-size: 0.9em; margin-bottom: 15px;">
+                        Provide location details to generate a comprehensive compliance report for submission to state/district authorities.
+                    </p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; color: #b0b0b0; font-size: 0.85em; margin-bottom: 5px;">State *</label>
+                            <select id="stateInput" style="width: 100%; padding: 10px; border: 2px solid #2d2d44; background: #16213e; color: #e4e4e4; border-radius: 8px; font-size: 0.95em;">
+                                <option value="">Select State</option>
+                                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                                <option value="Assam">Assam</option>
+                                <option value="Bihar">Bihar</option>
+                                <option value="Chhattisgarh">Chhattisgarh</option>
+                                <option value="Goa">Goa</option>
+                                <option value="Gujarat">Gujarat</option>
+                                <option value="Haryana">Haryana</option>
+                                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                                <option value="Jharkhand">Jharkhand</option>
+                                <option value="Karnataka">Karnataka</option>
+                                <option value="Kerala">Kerala</option>
+                                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                <option value="Maharashtra">Maharashtra</option>
+                                <option value="Manipur">Manipur</option>
+                                <option value="Meghalaya">Meghalaya</option>
+                                <option value="Mizoram">Mizoram</option>
+                                <option value="Nagaland">Nagaland</option>
+                                <option value="Odisha">Odisha</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Rajasthan">Rajasthan</option>
+                                <option value="Sikkim">Sikkim</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Telangana">Telangana</option>
+                                <option value="Tripura">Tripura</option>
+                                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                <option value="Uttarakhand">Uttarakhand</option>
+                                <option value="West Bengal">West Bengal</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; color: #b0b0b0; font-size: 0.85em; margin-bottom: 5px;">District *</label>
+                            <input type="text" id="districtInput" placeholder="e.g., Ranchi" 
+                                   style="width: 100%; padding: 10px; border: 2px solid #2d2d44; background: #16213e; color: #e4e4e4; border-radius: 8px; font-size: 0.95em;">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #b0b0b0; font-size: 0.85em; margin-bottom: 5px;">Mining Site Name *</label>
+                        <input type="text" id="locationNameInput" placeholder="e.g., XYZ Coal Mine" 
+                               style="width: 100%; padding: 10px; border: 2px solid #2d2d44; background: #16213e; color: #e4e4e4; border-radius: 8px; font-size: 0.95em;">
+                    </div>
+                    
+                    <button class="btn" id="generateReportBtn" style="width: 100%;">
+                        📄 Generate Comprehensive Report for Authorities
+                    </button>
                 </div>
 
-                <div id="reportSection" class="report-section" style="display: none;"></div>
+                <div id="reportSection" class="report-section" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #2d2d44;">
+                        <h3 style="color: #667eea; margin: 0;">Official Compliance Report</h3>
+                        <button id="downloadReportBtn" class="btn" style="padding: 8px 16px; font-size: 0.9em;">
+                            💾 Download Report
+                        </button>
+                    </div>
+                    <div id="reportContent" style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.6;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -784,7 +860,34 @@
 
         // Generate report
         document.getElementById('generateReportBtn').addEventListener('click', async () => {
-            if (!analysisResults) return;
+            if (!analysisResults) {
+                showAlert('Please analyze an image first', 'danger');
+                return;
+            }
+
+            // Validate required fields
+            const state = document.getElementById('stateInput').value;
+            const district = document.getElementById('districtInput').value;
+            const locationName = document.getElementById('locationNameInput').value;
+
+            if (!state || !district || !locationName) {
+                showAlert('Please fill in all required fields (State, District, and Site Name)', 'warning');
+                return;
+            }
+
+            // Get coordinates if available
+            const latitude = document.getElementById('latInput').value || 'N/A';
+            const longitude = document.getElementById('lonInput').value || 'N/A';
+
+            // Prepare report data
+            const reportData = {
+                ...analysisResults,
+                state: state,
+                district: district,
+                location_name: locationName,
+                latitude: latitude,
+                longitude: longitude
+            };
 
             try {
                 const response = await fetch('/api/generate-report', {
@@ -792,19 +895,51 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(analysisResults)
+                    body: JSON.stringify(reportData)
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    document.getElementById('reportSection').textContent = result.report;
+                    document.getElementById('reportContent').textContent = result.report;
                     document.getElementById('reportSection').style.display = 'block';
-                    showAlert('Report generated successfully!', 'success');
+                    
+                    // Store report for download
+                    window.currentReport = {
+                        content: result.report,
+                        filename: result.filename,
+                        reportId: result.report_id
+                    };
+                    
+                    // Show success message with severity
+                    const severityMsg = result.severity === 'CRITICAL' 
+                        ? '⚠️ CRITICAL VIOLATIONS DETECTED - Report ready for immediate submission!'
+                        : '✅ Report generated successfully!';
+                    showAlert(severityMsg, result.severity === 'CRITICAL' ? 'warning' : 'success');
+                    
+                    // Scroll to report
+                    document.getElementById('reportSection').scrollIntoView({ behavior: 'smooth' });
                 }
             } catch (error) {
                 showAlert('Error generating report: ' + error.message, 'danger');
             }
+        });
+
+        // Download report
+        document.getElementById('downloadReportBtn').addEventListener('click', () => {
+            if (!window.currentReport) return;
+            
+            const blob = new Blob([window.currentReport.content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = window.currentReport.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showAlert('Report downloaded successfully! Ready for submission to authorities.', 'success');
         });
 
         // Reset
@@ -815,8 +950,12 @@
             analyzeBtn.disabled = true;
             document.getElementById('resultsSection').classList.remove('active');
             document.getElementById('reportSection').style.display = 'none';
+            document.getElementById('stateInput').value = '';
+            document.getElementById('districtInput').value = '';
+            document.getElementById('locationNameInput').value = '';
             clearBoundary();
             showAlert('', '');
+            window.currentReport = null;
         });
 
         // Alert helper
