@@ -11,39 +11,6 @@ An AI-powered web application for detecting open crust mining activities from sa
 - 🎯 **Area Calculation**: Precise calculation of total and illegal mining areas
 - 🌐 **Web Interface**: User-friendly browser-based interface with interactive mapping
 
-## Installation
-
-1. **Clone or navigate to the repository**
-   ```bash
-   cd c:\Users\neilf\Documents\opencrustmine
-   ```
-
-2. **Create a virtual environment (recommended)**
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Usage
-
-1. **Start the application**
-   ```bash
-   python app.py
-   ```
-
-2. **Access the web interface**
-   - Open your browser and navigate to: `http://localhost:5000`
-
-3. **Analyze satellite imagery**
-   - Upload a satellite image (PNG, JPG, JPEG)
-   - Optionally draw boundary polygon on the map for authorized mining area
-   - Click "Analyze Mining Activity"
-   - Review results and generate compliance report
 
 ## Project Structure
 
@@ -99,6 +66,41 @@ This tool addresses the following requirements from the problem statement:
 - PDF report generation with maps
 - Multi-temporal analysis
 - Batch processing
+
+## Installation
+
+1. **Clone or navigate to the repository**
+   ```bash
+   cd c:\Users\neilf\Documents\opencrustmine
+   ```
+
+2. **Create a virtual environment (recommended)**
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   
+## Usage
+
+1. **Start the application**
+   ```bash
+   python app.py
+   ```
+
+2. **Access the web interface**
+   - Open your browser and navigate to: `http://localhost:5000`
+
+3. **Analyze satellite imagery**
+   - Upload a satellite image (PNG, JPG, JPEG)
+   - Optionally draw boundary polygon on the map for authorized mining area
+   - Click "Analyze Mining Activity"
+   - Review results and generate compliance report
+
 
 ## System Requirements
 
