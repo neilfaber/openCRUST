@@ -8,6 +8,7 @@ import io
 import json
 import os
 from datetime import datetime
+import dotenv
 
 import cv2
 import geopandas as gpd
@@ -258,18 +259,21 @@ def analyze_image():
         }
 
         if illegal_area >= 1:
+            from os import environ
+
             # create reusable transporter (like nodemailer.createTransport)
-            yag = yagmail.SMTP("your_email@gmail.com", "your_app_password")
+            yag = yagmail.SMTP(environ["SMTP_USER"], environ["SMTP_PASS"])
             html = """
             <h2>Hey there 👋</h2>
             <p>This email was sent using <b>Python yagmail</b>.</p>
             """
 
             yag.send(
-                to="receiver@example.com",
+                to="faberneil69@gmail.com",
                 subject="HTML + Attachments Example",
                 contents=[html, "path/to/image.png", "path/to/file.pdf"],
             )
+            print("Success")
 
         return jsonify(result)
 
