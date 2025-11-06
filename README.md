@@ -71,7 +71,7 @@ This tool addresses the following requirements from the problem statement:
 
 1. **Clone or navigate to the repository**
    ```bash
-   cd c:\Users\neilf\Documents\opencrustmine
+   cd c:\folder_location\opencrustmine
    ```
 
 2. **Create a virtual environment (recommended)**
